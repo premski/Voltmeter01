@@ -25,7 +25,7 @@ public class LipoChart {
         entries2 = new ArrayList<>();
 
         // Gesamtspannung
-        textViewUGes.setText(""+lipo.getuGes());
+        textViewUGes.setText(String.format( "%.2f", lipo.getuGes() ));
 
         // Füllstand
         fillLevel.setY (lipo.getFillLevel());
@@ -36,7 +36,7 @@ public class LipoChart {
         chartFillLevel.getAxisRight().setAxisMaximum(100f);
         chartFillLevel.getAxisLeft().setAxisMinimum(0);
         chartFillLevel.getAxisLeft().setAxisMaximum(100f);
-        chartFillLevel.getAxisLeft().setEnabled(false);
+        //chartFillLevel.getAxisLeft().setEnabled(false);
         chartFillLevel.getXAxis().setEnabled(false);
         BarData data = new BarData(dataset);
         data.setValueTextSize(20);
@@ -62,9 +62,9 @@ public class LipoChart {
         description2.setText("Volt");
         chartCells.setDescription(description2);
         //chart2.setVisibleXRange(0, 4.5f);
-        chartCells.getAxisLeft().setAxisMinimum(3.55f);
+        chartCells.getAxisLeft().setAxisMinimum(3.50f);
         chartCells.getAxisLeft().setAxisMaximum(4.25f);
-        chartCells.getAxisRight().setAxisMinimum(3.55f);
+        chartCells.getAxisRight().setAxisMinimum(3.50f);
         chartCells.getAxisRight().setAxisMaximum(4.25f);
         chartCells.getXAxis().setEnabled(false);
         chartCells.invalidate();

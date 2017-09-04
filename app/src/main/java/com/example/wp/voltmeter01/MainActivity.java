@@ -70,7 +70,13 @@ public class MainActivity extends AppCompatActivity {
         firstBar.setMax(150);
         firstBar.setProgress(100);
         */
-        rcLipo.updateData(3.96f,7.95f,11.98f,0f);
+        // nur zum Testen: Akkuspannungen festlegen
+        float s1=4.03f;
+        float s2=4.01f;
+        float s3=4.00f;
+        float s4=0f;
+
+        rcLipo.updateData(s1,s1+s2,s1+s2+s3,s1+s2+s3+s4); // Aufruf muss ersetzt werden durch echte Messwerte
         TextView textViewUges = (TextView)findViewById (R.id.uGes);
         HorizontalBarChart chart = (HorizontalBarChart) findViewById(R.id.chart);
         HorizontalBarChart chart2 = (HorizontalBarChart) findViewById(R.id.chart2);
