@@ -1,39 +1,55 @@
 package com.example.wp.voltmeter01;
 
+import android.Manifest;
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.HorizontalBarChart;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.Description;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
-import com.github.mikephil.charting.data.BarEntry;
-import com.github.mikephil.charting.data.Entry;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.StringTokenizer;
 
-import static android.R.color.holo_green_light;
+import app.akexorcist.bluetotohspp.library.BluetoothSPP;
+import app.akexorcist.bluetotohspp.library.BluetoothState;
+import app.akexorcist.bluetotohspp.library.DeviceList;
+
 
 public class MainActivity extends AppCompatActivity {
+//public class MainActivity extends Activity {
     private ProgressBar firstBar = null;
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
@@ -45,18 +61,10 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    /* Füllstand UI
-    public BarEntry level = new BarEntry (1,0f);
-    public BarEntry s1 = new BarEntry (1,0f);
-    public BarEntry s2 = new BarEntry (2,0f);
-    public BarEntry s3 = new BarEntry (3,0f);
-    public BarEntry s4 = new BarEntry (4,0f);
-
-    public ArrayList<BarEntry> entries1 = new ArrayList<>();
-    public ArrayList<BarEntry> entries2 = new ArrayList<>();
-    */
+    private final String TAG = MainActivity.class.getSimpleName();
 
 
+    BluetoothSPP bt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,11 +85,79 @@ public class MainActivity extends AppCompatActivity {
         float s4=0f;
 
         rcLipo.updateData(s1,s1+s2,s1+s2+s3,s1+s2+s3+s4); // Aufruf muss ersetzt werden durch echte Messwerte
-        TextView textViewUges = (TextView)findViewById (R.id.uGes);
-        HorizontalBarChart chart = (HorizontalBarChart) findViewById(R.id.chart);
-        HorizontalBarChart chart2 = (HorizontalBarChart) findViewById(R.id.chart2);
+        final TextView textViewUges = (TextView)findViewById (R.id.uGes);
+        final HorizontalBarChart chart = (HorizontalBarChart) findViewById(R.id.chart);
+        final HorizontalBarChart chart2 = (HorizontalBarChart) findViewById(R.id.chart2);
         lipoChart = new LipoChart (rcLipo);
         lipoChart.refresh(rcLipo, textViewUges, chart, chart2);
+
+
+        final TextView helloTextView = (TextView) findViewById(R.id.readBuffer);
+
+
+        bt = new BluetoothSPP(this);
+
+        if(!bt.isBluetoothAvailable()) {
+            Toast.makeText(getApplicationContext()
+                    , "Bluetooth is not available"
+                    , Toast.LENGTH_SHORT).show();
+            //finish();
+        }
+
+        bt.setOnDataReceivedListener(new BluetoothSPP.OnDataReceivedListener() {
+            public void onDataReceived(byte[] data, String message) {
+                helloTextView.setText("Message: " + message);
+                try {
+                    StringTokenizer tokens = new StringTokenizer(message, ";");
+                    float s1 = Float.valueOf(tokens.nextToken()).floatValue();// s1
+                    float s2 = Float.valueOf(tokens.nextToken()).floatValue();// s2
+                    float s3 = Float.valueOf(tokens.nextToken()).floatValue();// s3
+                    float s4 = Float.valueOf(tokens.nextToken()).floatValue();// s4
+
+                    rcLipo.updateData(s1, s1 + s2, s1 + s2 + s3, s1 + s2 + s3 + s4);
+                    lipoChart.refresh(rcLipo, textViewUges, chart, chart2);
+                    //Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    System.out.println (e.toString());
+                }
+            }
+        });
+
+        bt.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() {
+            public void onDeviceConnected(String name, String address) {
+                Toast.makeText(getApplicationContext()
+                        , "Connected to " + name + "\n" + address
+                        , Toast.LENGTH_SHORT).show();
+            }
+
+            public void onDeviceDisconnected() {
+                Toast.makeText(getApplicationContext()
+                        , "Connection lost", Toast.LENGTH_SHORT).show();
+            }
+
+            public void onDeviceConnectionFailed() {
+                Toast.makeText(getApplicationContext()
+                        , "Unable to connect", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        Button btnConnect = (Button)findViewById(R.id.btnConnect);
+        btnConnect.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                if(bt.getServiceState() == BluetoothState.STATE_CONNECTED) {
+                    bt.disconnect();
+                } else {
+                    Intent intent = new Intent(getApplicationContext(), DeviceList.class);
+                    startActivityForResult(intent, BluetoothState.REQUEST_CONNECT_DEVICE);
+                }
+            }
+        });
+
+
+
+
+
+
 
 
 
@@ -141,21 +217,23 @@ public class MainActivity extends AppCompatActivity {
         chart2.invalidate();*/
 
 
+
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
-    public void initUi () {
 
-    }
-    public void refreshUI () {
 
-    }
+
+
+
+
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
@@ -167,13 +245,15 @@ public class MainActivity extends AppCompatActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
         return super.onOptionsItemSelected(item);
     }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+
 
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
@@ -194,12 +274,58 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
+        if (!bt.isBluetoothEnabled()) {
+            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(intent, BluetoothState.REQUEST_ENABLE_BT);
+        } else {
+            if(!bt.isServiceAvailable()) {
+                bt.setupService();
+                bt.startService(BluetoothState.DEVICE_OTHER);
+                setup();
+            }
+        }
 
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client.connect();
         AppIndex.AppIndexApi.start(client, getIndexApiAction());
     }
+    public void setup() {
+       /* Button btnSend = (Button)findViewById(R.id.btnSend);
+        btnSend.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                bt.send("Text", true);
+            }
+        });*/
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == BluetoothState.REQUEST_CONNECT_DEVICE) {
+            if(resultCode == Activity.RESULT_OK)
+                bt.connect(data);
+        } else if(requestCode == BluetoothState.REQUEST_ENABLE_BT) {
+            if(resultCode == Activity.RESULT_OK) {
+                bt.setupService();
+                bt.startService(BluetoothState.DEVICE_OTHER);
+                setup();
+            } else {
+                Toast.makeText(getApplicationContext()
+                        , "Bluetooth was not enabled."
+                        , Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        }
+    }
+
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        bt.stopService();
+
+    }
+
 
     @Override
     public void onStop() {

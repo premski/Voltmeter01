@@ -28,10 +28,6 @@
     <include layout="@layout/content_main" />
 
 
-
-
-
-
-
 </LinearLayout>
+
 </ScrollView>

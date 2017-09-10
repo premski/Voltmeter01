@@ -48,11 +48,17 @@ public class LipoChart {
         chartFillLevel.setDescription(description);
         chartFillLevel.invalidate();
 
+        float minScale = 3.5f;
+        float maxScale = 4.25f;
+        float uCell = 0f;
         /* Einzelzellen */
         for (int i = 0; i<lipo.getNrCellsDetected();i++) {
-            cell[i].setY (lipo.getCellU(i));
+            uCell = lipo.getCellU(i);
+            if (uCell < minScale) minScale = uCell;
+            if (uCell > maxScale) maxScale = uCell;
+            cell[i].setY (uCell);
             entries2.add (cell[i]);
-            System.out.println ("ChartRefresh: Cell [" + i + "]" + " = " + lipo.getCellU(i));
+            System.out.println ("ChartRefresh: Cell [" + i + "]" + " = " + uCell);
         }
 
         BarDataSet dataset2 = new BarDataSet(entries2, "Einzelzellen [V]");
@@ -61,11 +67,12 @@ public class LipoChart {
         Description description2 = new Description();
         description2.setText("Volt");
         chartCells.setDescription(description2);
+
         //chart2.setVisibleXRange(0, 4.5f);
-        chartCells.getAxisLeft().setAxisMinimum(3.50f);
-        chartCells.getAxisLeft().setAxisMaximum(4.25f);
-        chartCells.getAxisRight().setAxisMinimum(3.50f);
-        chartCells.getAxisRight().setAxisMaximum(4.25f);
+        chartCells.getAxisLeft().setAxisMinimum(minScale);
+        chartCells.getAxisLeft().setAxisMaximum(maxScale);
+        chartCells.getAxisRight().setAxisMinimum(minScale);
+        chartCells.getAxisRight().setAxisMaximum(maxScale);
         chartCells.getXAxis().setEnabled(false);
         chartCells.invalidate();
 
